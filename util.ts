@@ -1,3 +1,20 @@
+/**
+Return a string representing the type of the given value;
+like `typeof value` but also distinguishing between 'null' and 'array'.
+*/
+function objectType(value: any) {
+  if (value === undefined) {
+    return 'undefined'
+  }
+  if (value === null) {
+    return 'null'
+  }
+  if (Array.isArray(value)) {
+    return 'array'
+  }
+  return typeof value
+}
+
 function randomNumber(min: number = 0,
                       max: number = 1): number {
   // Math.random() might return 0, but will not return 1
