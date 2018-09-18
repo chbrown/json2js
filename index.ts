@@ -1,18 +1,7 @@
-const fs = require('fs')
-const {Pointer} = require('rfc6902/pointer')
+import {readFileSync} from 'fs'
+import {Pointer} from 'rfc6902/pointer'
 
-function objectType(object) {
-  if (object === undefined) {
-    return 'undefined'
-  }
-  if (object === null) {
-    return 'null'
-  }
-  if (Array.isArray(object)) {
-    return 'array'
-  }
-  return typeof object
-}
+import {objectType, randomIdentifier} from './util'
 
 // mapping from JSON strings to number of occurrences
 const cache = new Map()
@@ -34,7 +23,7 @@ function next(object) {
 }
 
 const root_json_file = process.argv[2]
-const root_json = fs.readFileSync(root_json_file)
+const root_json = readFileSync(root_json_file)
 const root = JSON.parse(root_json)
 
 next(root)
@@ -69,10 +58,6 @@ function replace(object, replacements) {
   }
 }
 
-function randomString() {
-  return '__' + Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(32).replace(/^\d+/, '')
-}
-
 /**
 Keep the replacements that take more than 0.1% of the original
 AND are not longer than the JSON to be replaced :)
@@ -86,7 +71,7 @@ function shouldReplace({score, json}) {
 
 // prepare replacements
 const cacheReplacements = new Map(cacheArray.filter(shouldReplace).map(({score, json, count}) => {
-  const pointer = new Pointer().add(randomString())
+  const pointer = new Pointer().add(randomIdentifier())
   console.error(`Replacing ${count} instances of ${json.length}-character value (= ${score} total)`)
   console.error(`  - ${json.slice(0, 100)}${json.length > 100 ? '...' : ''}`)
   console.error(`  + ${pointer.toString()}`)

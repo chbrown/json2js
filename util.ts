@@ -2,7 +2,7 @@
 Return a string representing the type of the given value;
 like `typeof value` but also distinguishing between 'null' and 'array'.
 */
-function objectType(value: any) {
+export function objectType(value: any) {
   if (value === undefined) {
     return 'undefined'
   }
