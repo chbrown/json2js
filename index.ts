@@ -1,32 +1,14 @@
 import {readFileSync} from 'fs'
 import {Pointer} from 'rfc6902/pointer'
 
+import {countValues} from './optimization'
 import {objectType, randomIdentifier} from './util'
 
-// mapping from JSON strings to number of occurrences
-const cache = new Map()
-
-function next(object) {
-  const object_json = JSON.stringify(object)
-  cache.set(object_json, (cache.get(object_json) || 0) + 1)
-  const type = objectType(object)
-  if (type === 'array') {
-    for (const child of object) {
-      next(child)
-    }
-  }
-  else if (type === 'object') {
-    for (const key in object) {
-      next(object[key])
-    }
-  }
-}
-
 const root_json_file = process.argv[2]
-const root_json = readFileSync(root_json_file)
+const root_json = readFileSync(root_json_file, {encoding: 'utf8'})
 const root = JSON.parse(root_json)
 
-next(root)
+const cache = countValues(root)
 
 const cacheArray = Array.from(cache).filter(([, count]) => count > 1).map(([json, count]) => {
   return {score: json.length * count, json, count}
