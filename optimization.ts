@@ -1,5 +1,3 @@
-import {objectType} from './util'
-
 const hasOwnProperty = Object.prototype.hasOwnProperty
 
 /**
@@ -10,16 +8,20 @@ export function countValues(object: any,
   const object_json = JSON.stringify(object)
   const object_count = counts.get(object_json) || 0
   counts.set(object_json, object_count + 1)
-  const type = objectType(object)
-  if (type === 'array') {
-    for (const element of object) {
-      countValues(element, counts)
+  // exclude primitives from recursion
+  if (object != null && typeof object == 'object') {
+    // recurse over Array
+    if (Array.isArray(object)) {
+      for (const element of object) {
+        countValues(element, counts)
+      }
     }
-  }
-  else if (type === 'object') {
-    for (const key in object) {
-      if (hasOwnProperty.call(object, key)) {
-        countValues(object[key], counts)
+    // recurse over Object
+    else {
+      for (const key in object) {
+        if (hasOwnProperty.call(object, key)) {
+          countValues(object[key], counts)
+        }
       }
     }
   }
