@@ -14,12 +14,12 @@
   "dependencies": {
     "rfc6902": "3.0.0"
   },
-  "scripts": {
-    "prepare": "tsc",
-    "clean": "tsc -b --clean"
-  },
   "devDependencies": {
     "@types/node": "^10.10.1",
     "typescript": "^3.0.3"
+  },
+  "scripts": {
+    "prepare": "tsc",
+    "clean": "tsc -b --clean"
   }
 }
