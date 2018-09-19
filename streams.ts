@@ -30,3 +30,12 @@ export async function writeString(writableStream: NodeJS.WritableStream,
     .write(content, encoding, () => resolve())
   })
 }
+
+export async function transformString(inputStream: NodeJS.ReadableStream,
+                                      outputStream: NodeJS.WritableStream,
+                                      f: (content: string) => string,
+                                      encoding: string = 'utf8') {
+  const inputString = await readString(inputStream, encoding)
+  const outputString = f(inputString)
+  await writeString(outputStream, outputString, encoding)
+}
