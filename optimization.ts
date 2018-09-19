@@ -29,8 +29,9 @@ export function countValues(object: any,
 }
 
 /**
-Replace every occurrence in `object` (even `object` itself) with the corresponding
-value from `replacements`, which is a mapping from JSON strings to new values.
+Replace every occurrence in `object` (even `object` itself) with the
+corresponding value (if there is one) from `replacements`,
+which is a mapping from JSON strings to new values.
 */
 export function replaceValues(object: any,
                               replacements: Map<string, any>): any {
