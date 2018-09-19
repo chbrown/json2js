@@ -27,3 +27,30 @@ export function countValues(object: any,
   }
   return counts
 }
+
+/**
+Replace every occurrence in `object` (even `object` itself) with the corresponding
+value from `replacements`, which is a mapping from JSON strings to new values.
+*/
+export function replaceValues(object: any,
+                              replacements: Map<string, any>): any {
+  const object_json = JSON.stringify(object)
+  if (replacements.has(object_json)) {
+    return replacements.get(object_json)
+  }
+  // short-circuit primitives
+  if (object == null || typeof object != 'object') {
+    return object
+  }
+  // recurse over Array
+  if (Array.isArray(object)) {
+    return object.map(element => replaceValues(element, replacements))
+  }
+  // recurse over Object
+  for (const key in object) {
+    if (hasOwnProperty.call(object, key)) {
+      object[key] = replaceValues(object[key], replacements)
+    }
+  }
+  return object
+}
