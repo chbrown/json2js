@@ -1,4 +1,16 @@
 /**
+If `s` exceeds `maxLength` characters, return a string of `maxLength` characters
+that starts with some prefix of `s` and ends with `ellipsis`;
+otherwise return `s`.
+*/
+export function elide(s: string, maxLength = 100, ellipsis = '…'): string {
+  if (s.length <= maxLength) {
+    return s
+  }
+  return s.slice(0, maxLength - ellipsis.length) + ellipsis
+}
+
+/**
 Return a string representing the type of the given value;
 like `typeof value` but also distinguishing between 'null' and 'array'.
 */
