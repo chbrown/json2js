@@ -1,68 +1,61 @@
-import {readFileSync} from 'fs'
+import {readFileSync, createReadStream} from 'fs'
 import {Pointer} from 'rfc6902/pointer'
 
-import {countValues} from './optimization'
-import {objectType, randomIdentifier} from './util'
+import {countValues, replaceValues} from './optimization'
+import {elide, randomIdentifier} from './util'
+import {readString, writeString, transformString} from './streams'
 
-const root_json_file = process.argv[2]
-const root_json = readFileSync(root_json_file, {encoding: 'utf8'})
-const root = JSON.parse(root_json)
+function optimizeWithPointers(source: any): any {
+  // prepare replacements
+  const replacements = Array.from(countValues(source)).map(([json, count]) => {
+    // calculate score
+    const score = json.length * count
+    // create unique Pointer
+    const pointer = new Pointer().add(randomIdentifier())
+    return {json, count, score, pointer}
+  }).filter(({json, count, score}) => {
+    // Keep the replacements that:
+    // 1. Replace more than one thing
+    // 2. Are not longer than the JSON to be replaced -- the replacement JSON is
+    //    something like {"$ref":"#/__abcd1234567"} => 26 characters.
+    return count > 1 && json.length > 26
+  }).sort((a, b) => {
+    // sort highest score first (greediness hack)
+    return b.score - a.score
+  })
 
-const cache = countValues(root)
+  const replacementRefs = new Map(replacements.map(({json, pointer}) => {
+    return [json, {$ref: `#${pointer.toString()}`}] as [string, object]
+  }))
+  const target = replaceValues(source, replacementRefs)
+  // add root-level value for each of the used replacements
+  // (this must occur after the replaceValues(...) call,
+  //  or else the actual values will get replaced with a circular reference!)
+  replacements.forEach(({json, pointer}) => {
+    const value = JSON.parse(json)
+    pointer.set(target, value)
+  })
+  // report on replacements
+  replacements.forEach(({json, count, score, pointer}) => {
+    console.error(`Replaced ${count} instances of ${json.length}-character value (= ${score} total)`)
+    console.error(`  - ${elide(json)}`)
+    console.error(`  + ${pointer.toString()}`)
+  })
+  return target
+}
 
-const cacheArray = Array.from(cache).filter(([, count]) => count > 1).map(([json, count]) => {
-  return {score: json.length * count, json, count}
-})
-cacheArray.sort((a, b) => b.score - a.score)
-
-/**
-replacements is a Map from JSON strings to JSON Pointers
-*/
-function replace(object, replacements) {
-  const object_json = JSON.stringify(object)
-  const pointer = replacements.get(object_json)
-  if (pointer) {
-    return {$ref: `#${pointer.toString()}`}
-  }
-  // otherwise, recurse
-  const type = objectType(object)
-  if (type === 'array') {
-    return object.map(child => replace(child, replacements))
-  }
-  else if (type === 'object') {
-    for (const key in object) {
-      object[key] = replace(object[key], replacements)
-    }
-    return object
-  }
-  else {
-    return object
+function wrapJSON(f: (x: any) => any) {
+  return (json: string) => {
+    return JSON.stringify(f(JSON.parse(json)))
   }
 }
 
-/**
-Keep the replacements that take more than 0.1% of the original
-AND are not longer than the JSON to be replaced :)
-
-The replacement JSON is something like {"$ref":"#/__abcd1234"} at the shortest,
-so, 23 characters.
-*/
-function shouldReplace({score, json}) {
-  return (score / root_json.length) > 0.001 && json.length > 23
+function main() {
+  const sourceStream = createReadStream(process.argv[2])
+  transformString(sourceStream, process.stdout, wrapJSON(optimizeWithPointers))
+  .catch(error => console.error(error))
 }
 
-// prepare replacements
-const cacheReplacements = new Map(cacheArray.filter(shouldReplace).map(({score, json, count}) => {
-  const pointer = new Pointer().add(randomIdentifier())
-  console.error(`Replacing ${count} instances of ${json.length}-character value (= ${score} total)`)
-  console.error(`  - ${json.slice(0, 100)}${json.length > 100 ? '...' : ''}`)
-  console.error(`  + ${pointer.toString()}`)
-  return [json, pointer]
-}))
-
-const newRoot = replace(root, cacheReplacements)
-for (const [json, pointer] of cacheReplacements) {
-  const value = JSON.parse(json)
-  pointer.set(newRoot, value)
+if (require.main === module) {
+  main()
 }
-console.log(JSON.stringify(newRoot))
